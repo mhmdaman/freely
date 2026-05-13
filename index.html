@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Resonance — AMOLED Music</title>
+    <meta name="description" content="Infinite contrast music experience">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Barlow+Condensed:ital,wght@0,100;0,200;0,300;0,400;1,100&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        condensed: ['Barlow Condensed', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    },
+                    colors: {
+                        oled: '#000000',
+                        charcoal: '#0A0A0A',
+                        purple: '#A020F0',
+                        cyan: '#00F5FF',
+                        pink: '#FF2D78',
+                        dim: '#666666'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/><text y='.9em' font-size='90' fill='%23A020F0'>◈</text></svg>">
+</head>
+<body class="bg-oled text-white font-sans overflow-hidden">
+    <div id="root"></div>
+    <script type="text/babel" src="/main.js"></script>
+</body>
+</html>

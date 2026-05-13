@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freely - Music Player</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="logo">Freely</div>
+        <nav>
+            <ul>
+                <li class="active" id="nav-home">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                    </svg>
+                    Home
+                </li>
+                <li id="nav-search">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                    </svg>
+                    Search
+                </li>
+                <li id="nav-library">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
+                    </svg>
+                    Library
+                </li>
+            </ul>
+        </nav>
+        <div
+            style="margin-top: 20px; font-size: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
+            Playlists</div>
+        <nav>
+            <ul id="playlists-list">
+                <!-- Playlists will be injected here -->
+            </ul>
+            <li id="create-playlist" style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">+ Create
+                Playlist</li>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Search for artists, songs, or podcasts">
+            </div>
+        </header>
+
+        <main id="main-view">
+            <section class="content-section" id="home-view">
+                <h2>Welcome back</h2>
+                <div class="results-grid" id="home-grid">
+                    <!-- Recommended or Recent songs -->
+                </div>
+            </section>
+
+            <section class="content-section" id="search-view" style="display: none;">
+                <h2>Search Results</h2>
+                <div class="results-grid" id="search-results">
+                    <!-- Search results will appear here -->
+                </div>
+            </section>
+
+            <section class="content-section" id="library-view" style="display: none;">
+                <h2>Your Favorites</h2>
+                <div class="results-grid" id="favorites-grid">
+                    <!-- Favorites will appear here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="player-bar">
+        <div class="now-playing">
+            <img src="https://placehold.co/56x56/181818/ffffff?text=Music" alt="Now Playing" class="now-playing-img"
+                id="player-thumb">
+            <div class="now-playing-info">
+                <div class="now-playing-title" id="player-title">Select a song</div>
+                <div class="now-playing-artist" id="player-artist">Artist</div>
+            </div>
+            <button id="favorite-toggle"
+                style="background: none; border: none; color: var(--text-secondary); margin-left: 10px; cursor: pointer;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l8.84-8.84 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="player-controls">
+            <div class="control-buttons">
+                <button class="control-btn" id="prev-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
+                    </svg>
+                </button>
+                <button class="control-btn play-pause-btn" id="play-pause-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" id="play-icon">
+                        <path d="M8 5v14l11-7z" />
+                    </svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" id="pause-icon"
+                        style="display: none;">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                    </svg>
+                </button>
+                <button class="control-btn" id="next-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+                    </svg>
+                </button>
+            </div>
+            <div class="progress-container">
+                <span id="current-time">0:00</span>
+                <div class="progress-bar" id="seek-bar">
+                    <div class="progress-fill" id="seek-fill"></div>
+                </div>
+                <span id="total-duration">0:00</span>
+            </div>
+        </div>
+
+        <div class="volume-controls">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="color: var(--text-secondary);">
+                <path
+                    d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+            </svg>
+            <div class="volume-bar" id="volume-bar">
+                <div class="volume-fill" id="volume-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden YouTube Player (Behind UI) -->
+    <div id="youtube-player-container"
+        style="position: absolute; bottom: 0; right: 0; width: 200px; height: 200px; z-index: -1; opacity: 0.01; pointer-events: none;">
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
