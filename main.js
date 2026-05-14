@@ -3,23 +3,22 @@ const { useState, useEffect, useRef, useCallback, useMemo } = React;
 const YT_KEY = 'AIzaSyDwP6t6l9_7PUxswPTmPWvnc_fhMg_YRd0';
 
 const S = {
-    getUser: () => JSON.parse(localStorage.getItem('res_user') || 'null'),
-    setUser: u => localStorage.setItem('res_user', JSON.stringify(u)),
-    clearUser: () => localStorage.removeItem('res_user'),
-    getHist: e => JSON.parse(localStorage.getItem('res_h_' + e) || '[]'),
+    getUser: () => JSON.parse(localStorage.getItem('freely_user') || 'null'),
+    setUser: u => localStorage.setItem('freely_user', JSON.stringify(u)),
+    clearUser: () => localStorage.removeItem('freely_user'),
+    getHist: e => JSON.parse(localStorage.getItem('f_h_' + e) || '[]'),
     addHist: (e, s) => {
         let h = S.getHist(e).filter(x => x.id !== s.id);
         h = [s, ...h].slice(0, 20);
-        localStorage.setItem('res_h_' + e, JSON.stringify(h));
+        localStorage.setItem('f_h_' + e, JSON.stringify(h));
         return h;
     },
-    clearHist: e => { localStorage.removeItem('res_h_' + e); return []; },
-    getLiked: e => JSON.parse(localStorage.getItem('res_l_' + e) || '[]'),
+    getLiked: e => JSON.parse(localStorage.getItem('f_l_' + e) || '[]'),
     toggleLike: (e, s) => {
         let l = S.getLiked(e);
         const ex = l.find(x => x.id === s.id);
         l = ex ? l.filter(x => x.id !== s.id) : [s, ...l];
-        localStorage.setItem('res_l_' + e, JSON.stringify(l));
+        localStorage.setItem('f_l_' + e, JSON.stringify(l));
         return l;
     }
 };
@@ -32,17 +31,13 @@ async function ytSearch(query) {
         const ids = d.items.map(i => i.id.videoId).join(',');
         const dr = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${ids}&key=${YT_KEY}`);
         const dd = await dr.json();
-        return dd.items.map(i => {
-            const title = i.snippet.title.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&');
-            return {
-                id: i.id,
-                title: title,
-                artist: i.snippet.channelTitle,
-                duration: parseYTDuration(i.contentDetails.duration),
-                thumbnail: i.snippet.thumbnails.high?.url || i.snippet.thumbnails.medium?.url,
-                genre: i.snippet.categoryId === '10' ? 'Music' : 'Video'
-            };
-        });
+        return dd.items.map(i => ({
+            id: i.id,
+            title: i.snippet.title.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&'),
+            artist: i.snippet.channelTitle,
+            duration: parseYTDuration(i.contentDetails.duration),
+            thumbnail: i.snippet.thumbnails.high?.url || i.snippet.thumbnails.medium?.url,
+        }));
     } catch (e) { console.error(e); return []; }
 }
 
@@ -63,68 +58,52 @@ function fmtTime(s) {
 
 // --- COMPONENTS ---
 
-function RippleEffect({ x, y, onEnd }) {
-    useEffect(() => {
-        const timer = setTimeout(onEnd, 600);
-        return () => clearTimeout(timer);
-    }, [onEnd]);
-
-    return React.createElement('div', {
-        className: 'ripple',
-        style: { left: x, top: y }
-    });
-}
-
 function Visualizer({ active }) {
-    const [bars, setBars] = useState(Array(30).fill(10));
+    const [bars, setBars] = useState(Array(15).fill(10));
     const timerRef = useRef();
 
     useEffect(() => {
         if (active) {
             timerRef.current = setInterval(() => {
-                setBars(bars.map(() => Math.random() * 70 + 10));
-            }, 80);
+                setBars(bars.map(() => Math.random() * 80 + 20));
+            }, 100);
         } else {
-            setBars(Array(30).fill(2));
+            setBars(Array(15).fill(10));
             clearInterval(timerRef.current);
         }
         return () => clearInterval(timerRef.current);
     }, [active]);
 
-    return React.createElement('div', { className: 'relative w-full h-24 overflow-hidden' },
-        // Main Visualizer
-        React.createElement('div', { className: 'visualizer w-full h-full flex items-end gap-[2px] px-2' },
-            bars.map((h, i) => React.createElement('div', {
-                key: i,
-                className: 'v-bar flex-1',
-                style: { height: `${h}%`, transition: 'height 0.08s ease-out' }
-            }))
-        ),
-        // Reflection
-        React.createElement('div', { className: 'visualizer w-full h-full flex items-end gap-[2px] px-2 absolute top-full left-0 opacity-20 blur-[1px] transform scale-y-[-1]' },
-            bars.map((h, i) => React.createElement('div', {
-                key: i,
-                className: 'v-bar flex-1',
-                style: { height: `${h}%`, transition: 'height 0.08s ease-out' }
-            }))
-        )
+    return React.createElement('div', { className: 'flex items-end justify-center gap-3 h-32 w-full visualizer-brush' },
+        bars.map((h, i) => React.createElement('div', {
+            key: i,
+            className: 'brush-stroke',
+            style: { 
+                height: `${h}%`, 
+                backgroundColor: i % 2 === 0 ? 'var(--terracotta)' : 'var(--brass)',
+                opacity: 0.4 + (h / 200)
+            }
+        }))
     );
 }
 
 function AuthScreen({ onLogin }) {
-    return React.createElement('div', { className: 'h-screen flex flex-col items-center justify-center p-10 bg-oled' },
-        React.createElement('div', { className: 'art-glow' }),
-        React.createElement('h1', { className: 'text-7xl mb-2 z-10' }, 'RESONANCE'),
-        React.createElement('p', { className: 'artist-name text-purple mb-12 z-10' }, 'AMOLED EDITION'),
-        React.createElement('button', {
-            onClick: () => { S.setUser({ name: 'USER', email: 'oled@black' }); onLogin() },
-            className: 'amoled-card text-white font-bold px-12 py-4 hover:scale-105 transition-transform z-10 border border-purple/30'
-        }, 'INITIALIZE LINK')
+    return React.createElement('div', { className: 'h-screen flex flex-col items-center justify-center p-10 bg-linen relative overflow-hidden' },
+        React.createElement('div', { className: 'fixed inset-0 linen-texture opacity-20' }),
+        React.createElement('div', { className: 'text-center z-10' },
+            React.createElement('h1', { className: 'text-8xl font-serif font-black mb-4 text-espresso' }, 'Freely'),
+            React.createElement('div', { className: 'double-rule w-48 mx-auto' }),
+            React.createElement('p', { className: 'font-condensed tracking-widest text-brass mb-12 uppercase' }, 'Handcrafted Sound Experience'),
+            React.createElement('button', {
+                onClick: () => { S.setUser({ name: 'Listener', email: 'user@linen.com' }); onLogin() },
+                className: 'ecru-card px-12 py-5 font-serif text-xl border-2 border-brass/30 hover:border-terracotta transition-colors bg-ecru text-espresso shadow-lg active:scale-95'
+            }, 'Open the Journal')
+        )
     );
 }
 
 function MainLayout({ user, onLogout }) {
-    const [view, setView] = useState('home'); // home, search, library, settings
+    const [view, setView] = useState('home'); // home, search, library, player
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -134,7 +113,6 @@ function MainLayout({ user, onLogout }) {
     const [progress, setProgress] = useState(0);
     const [duration, setDuration] = useState(0);
     const [volume, setVolume] = useState(80);
-    const [ripples, setRipples] = useState([]);
     const [isReady, setIsReady] = useState(false);
     const [liked, setLiked] = useState(S.getLiked(user.email));
     const [history, setHistory] = useState(S.getHist(user.email));
@@ -142,20 +120,6 @@ function MainLayout({ user, onLogout }) {
     const playerRef = useRef(null);
     const current = queue[qIdx] || null;
 
-    // RIPPLE HANDLER
-    const addRipple = (e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const id = Date.now();
-        setRipples(prev => [...prev, { id, x, y }]);
-    };
-
-    const removeRipple = (id) => {
-        setRipples(prev => prev.filter(r => r.id !== id));
-    };
-
-    // PLAYER LOGIC
     const playSong = useCallback((songs, idx) => {
         if (!songs || idx < 0 || idx >= songs.length) return;
         const s = songs[idx];
@@ -167,17 +131,6 @@ function MainLayout({ user, onLogout }) {
         }
         setHistory(S.addHist(user.email, s));
     }, [isReady, user.email]);
-
-    // SWIPE LOGIC
-    const touchStart = useRef(0);
-    const handleTouchStart = (e) => { touchStart.current = e.touches[0].clientX; };
-    const handleTouchEnd = (e) => {
-        const delta = e.changedTouches[0].clientX - touchStart.current;
-        if (Math.abs(delta) > 100) {
-            if (delta > 0) playSong(queue, (qIdx - 1 + queue.length) % queue.length); // Swipe Right -> Prev
-            else playSong(queue, (qIdx + 1) % queue.length); // Swipe Left -> Next
-        }
-    };
 
     useEffect(() => {
         if (!window.YT) {
@@ -225,246 +178,222 @@ function MainLayout({ user, onLogout }) {
         setLoading(false);
     };
 
-    // VIEWS
-    const renderHome = () => React.createElement('div', { className: 'p-6 space-y-8 pb-40' },
-        React.createElement('header', { className: 'flex justify-between items-center' },
-            React.createElement('h2', { className: 'text-3xl' }, 'DISCOVER'),
-            React.createElement('div', { className: 'flex items-center gap-2' },
-                React.createElement('div', { className: `w-2 h-2 rounded-full ${isReady ? 'bg-cyan' : 'bg-pink animate-pulse'}` }),
-                React.createElement('span', { className: 'mono text-[10px] text-dim' }, isReady ? 'ONLINE' : 'SYNCING')
+    const renderEmpty = () => React.createElement('div', { className: 'flex flex-col items-center justify-center py-20 px-10 text-center opacity-60' },
+        React.createElement('div', { className: 'relative mb-8' },
+            React.createElement('svg', { width: '120', height: '120', viewBox: '0 0 120 120' },
+                React.createElement('rect', { x: '10', y: '10', width: '100', height: '100', fill: 'none', stroke: 'var(--brass)', strokeWidth: '2' }),
+                React.createElement('circle', { cx: '60', cy: '60', r: '40', fill: 'none', stroke: 'var(--brass)', strokeWidth: '1' }),
+                React.createElement('path', { d: 'M60 20 L60 40 M100 60 L80 60 M60 100 L60 80 M20 60 L40 60', stroke: 'var(--brass)', strokeWidth: '1' })
+            ),
+            React.createElement('div', { className: 'absolute bottom-0 right-0 transform translate-x-4 translate-y-4' },
+                 React.createElement('span', { className: 'text-4xl' }, '📍')
             )
         ),
-        React.createElement('div', { className: 'relative' },
-            React.createElement('input', {
-                className: 'w-full bg-charcoal border-none rounded-2xl px-6 py-4 text-white outline-none focus:ring-1 ring-purple/50 transition-all',
-                placeholder: 'Search for frequency...',
-                value: query,
-                onChange: e => setQuery(e.target.value),
-                onKeyDown: e => e.key === 'Enter' && handleSearch()
-            })
+        React.createElement('p', { className: 'font-serif italic text-2xl text-espresso' }, '"Nothing playing. Pick a record."')
+    );
+
+    const renderTrackList = (tracks, title) => React.createElement('div', { className: 'p-6 space-y-4' },
+        React.createElement('h2', { className: 'text-4xl font-serif font-black mb-8 text-espresso' }, title),
+        tracks.map((s, i) => React.createElement('div', {
+            key: s.id + i,
+            onClick: () => playSong(tracks, i),
+            className: `track-row ${current?.id === s.id ? 'active' : ''} group cursor-pointer`
+        },
+            React.createElement('span', { className: 'text-3xl font-serif text-linen/60 mr-6 w-8 text-right' }, i + 1),
+            React.createElement('img', { src: s.thumbnail, className: 'w-14 h-14 object-cover border border-brass/20 mr-4' }),
+            React.createElement('div', { className: 'flex-1 min-w-0' },
+                React.createElement('p', { className: 'font-serif text-lg text-espresso truncate group-hover:text-terracotta transition-colors' }, s.title),
+                React.createElement('p', { className: 'text-sage text-xs uppercase tracking-widest' }, s.artist)
+            ),
+            current?.id === s.id && React.createElement('span', { className: 'text-terracotta mr-4 animate-spin-slow' }, '◎'),
+            React.createElement('span', { className: 'font-mono text-xs text-brass' }, s.duration)
+        ))
+    );
+
+    const renderHome = () => React.createElement('div', { className: 'pb-40' },
+        React.createElement('div', { className: 'p-6 bg-ecru/50 border-b border-brass/10' },
+             React.createElement('div', { className: 'flex items-center gap-4 border-b-2 border-brass/20 pb-2 focus-within:border-terracotta transition-colors' },
+                React.createElement('span', { className: 'text-brass text-xl' }, '⚲'),
+                React.createElement('input', {
+                    className: 'flex-1 bg-transparent border-none text-espresso outline-none font-serif text-xl placeholder:text-brass/40',
+                    placeholder: 'Seek your frequency...',
+                    value: query,
+                    onChange: e => setQuery(e.target.value),
+                    onKeyDown: e => e.key === 'Enter' && handleSearch()
+                })
+             )
         ),
-        history.length > 0 && React.createElement('section', null,
-            React.createElement('h3', { className: 'text-dim mono text-xs mb-4' }, 'RECENT_LOGS'),
-            React.createElement('div', { className: 'flex gap-4 overflow-x-auto pb-4 no-scrollbar' },
-                history.map((s, i) => React.createElement('div', {
-                    key: s.id + i,
-                    onClick: () => playSong(history, i),
-                    className: 'amoled-card w-40 flex-shrink-0 space-y-3 active:scale-95 transition-transform'
-                },
-                    React.createElement('img', { src: s.thumbnail, className: 'w-full aspect-square object-cover rounded-lg' }),
-                    React.createElement('div', { className: 'space-y-1' },
-                        React.createElement('p', { className: 'text-sm font-bold truncate' }, s.title),
-                        React.createElement('p', { className: 'artist-name text-[10px] text-dim' }, s.artist)
-                    )
-                ))
-            )
-        ),
-        React.createElement('section', null,
-            React.createElement('h3', { className: 'text-dim mono text-xs mb-4' }, 'QUICK_ACCESS'),
-            React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
-                ['CHILL', 'HYPE', 'FOCUS', 'NIGHT'].map(m => React.createElement('button', {
-                    key: m,
-                    onClick: () => { setQuery(m); handleSearch(); },
-                    className: 'amoled-card py-6 text-center font-bold hover:text-purple border border-transparent hover:border-purple/30 transition-all active:bg-purple/10'
-                }, m))
+        
+        React.createElement('div', { className: 'p-6 space-y-12' },
+            history.length > 0 && React.createElement('section', null,
+                React.createElement('h3', { className: 'font-condensed text-xs tracking-[0.3em] uppercase text-brass mb-6' }, 'Recently Flipped'),
+                React.createElement('div', { className: 'flex gap-8 overflow-x-auto pb-6 no-scrollbar' },
+                    history.map((s, i) => React.createElement('div', {
+                        key: s.id + i,
+                        onClick: () => playSong(history, i),
+                        className: 'flex-shrink-0 w-44'
+                    },
+                        React.createElement('div', { className: 'polaroid-frame mb-4 active:scale-95 transition-transform' },
+                            React.createElement('div', { className: 'inner-rule' },
+                                React.createElement('img', { src: s.thumbnail, className: 'w-full aspect-square object-cover' })
+                            )
+                        ),
+                        React.createElement('p', { className: 'font-serif text-sm text-espresso truncate' }, s.title),
+                        React.createElement('p', { className: 'text-sage text-[10px] uppercase tracking-wider' }, s.artist)
+                    ))
+                )
+            ),
+
+            React.createElement('section', null,
+                React.createElement('h3', { className: 'font-condensed text-xs tracking-[0.3em] uppercase text-brass mb-6' }, 'Curated Collections'),
+                React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
+                    ['Late Night Jazz', 'Woven Lo-fi', 'Terracotta Folk', 'Deep Linen Ambient'].map(m => React.createElement('button', {
+                        key: m,
+                        onClick: () => { setQuery(m); handleSearch(); },
+                        className: 'bg-ecru p-8 text-left border border-brass/10 hover:border-terracotta/40 transition-all active:bg-linen/50'
+                    }, 
+                        React.createElement('p', { className: 'font-serif text-espresso' }, m),
+                        React.createElement('p', { className: 'text-[10px] text-brass uppercase mt-2' }, 'Collection №' + Math.floor(Math.random()*100))
+                    ))
+                )
             )
         )
     );
 
-    const renderSearch = () => React.createElement('div', { className: 'p-6 space-y-4 pb-40' },
-        React.createElement('div', { className: 'flex items-center gap-4 mb-6' },
-            React.createElement('button', { onClick: () => setView('home'), className: 'text-dim text-2xl' }, '←'),
-            React.createElement('h2', { className: 'text-2xl' }, 'RESULTS')
-        ),
-        loading ? React.createElement('div', { className: 'flex justify-center py-20' }, React.createElement('div', { className: 'loading-glow' })) :
-            results.map((s, i) => React.createElement('div', {
-                key: s.id + i,
-                onClick: () => playSong(results, i),
-                className: `track-row ${current?.id === s.id ? 'active' : ''}`
-            },
-                React.createElement('img', { src: s.thumbnail, className: 'w-12 h-12 rounded object-cover mr-4' }),
-                React.createElement('div', { className: 'flex-1 min-w-0' },
-                    React.createElement('p', { className: 'track-title font-bold truncate' }, s.title),
-                    React.createElement('p', { className: 'artist-name text-[10px] text-dim' }, s.artist)
-                ),
-                React.createElement('span', { className: 'mono text-xs text-dim ml-4' }, s.duration)
-            ))
-    );
-
-    const renderLibrary = () => React.createElement('div', { className: 'p-6 space-y-6 pb-40' },
-        React.createElement('h2', { className: 'text-3xl' }, 'ARCHIVE'),
-        liked.length === 0 ? React.createElement('div', { className: 'py-20 text-center space-y-4' },
-            React.createElement('div', { className: 'text-6xl opacity-20' }, '☲'),
-            React.createElement('p', { className: 'text-dim mono' }, 'EMPTY_VOID')
-        ) :
-            liked.map((s, i) => React.createElement('div', {
-                key: s.id + i,
-                onClick: () => playSong(liked, i),
-                className: `track-row ${current?.id === s.id ? 'active' : ''}`
-            },
-                React.createElement('img', { src: s.thumbnail, className: 'w-12 h-12 rounded object-cover mr-4' }),
-                React.createElement('div', { className: 'flex-1 min-w-0' },
-                    React.createElement('p', { className: 'track-title font-bold truncate' }, s.title),
-                    React.createElement('p', { className: 'artist-name text-[10px] text-dim' }, s.artist)
-                ),
-                React.createElement('button', {
-                    onClick: (e) => { e.stopPropagation(); setLiked(S.toggleLike(user.email, s)) },
-                    className: 'text-pink ml-4 text-xl'
-                }, '♥')
-            ))
-    );
-
-    const renderPlayer = () => React.createElement('div', {
-        className: 'fixed inset-0 bg-oled z-50 flex flex-col',
-        onTouchStart: handleTouchStart,
-        onTouchEnd: handleTouchEnd
-    },
-        // Album Art Zone
-        React.createElement('div', { className: 'art-zone' },
-            React.createElement('div', { className: 'art-blur-bg', style: { backgroundImage: `url(${current?.thumbnail})` } }),
-            React.createElement('div', { className: 'art-glow' }),
-            React.createElement('div', { className: 'art-main' },
-                React.createElement('img', { src: current?.thumbnail, className: 'w-full h-full object-cover' })
-            ),
-            React.createElement('div', { className: 'art-fade-overlay' }),
-            React.createElement('button', { onClick: () => setView('home'), className: 'absolute top-8 left-8 z-50 text-3xl opacity-50 hover:opacity-100 transition-opacity' }, '↓')
+    const renderPlayer = () => React.createElement('div', { className: 'fixed inset-0 bg-linen z-50 flex flex-col overflow-y-auto no-scrollbar' },
+        React.createElement('div', { className: 'fixed inset-0 linen-texture opacity-20' }),
+        
+        // Header
+        React.createElement('header', { className: 'flex justify-between items-center p-8 z-10' },
+            React.createElement('button', { onClick: () => setView('home'), className: 'text-espresso text-3xl' }, '↓'),
+            React.createElement('p', { className: 'font-condensed tracking-widest text-brass text-xs uppercase' }, 'Now Spinning'),
+            React.createElement('button', { onClick: () => setLiked(S.toggleLike(user.email, current)), className: `text-2xl ${liked.find(x => x.id === current?.id) ? 'text-terracotta' : 'text-brass/40'}` }, '♥')
         ),
 
-        // Now Playing Card
-        React.createElement('div', { className: 'flex-1 px-8 flex flex-col justify-between pb-12' },
-            React.createElement('div', { className: 'text-center' },
-                React.createElement('h2', { className: 'text-2xl mb-1 truncate px-4' }, current?.title),
-                React.createElement('p', { className: 'artist-name text-dim tracking-[0.3em] text-xs' }, current?.artist),
-                React.createElement('div', { className: 'w-16 h-[2px] bg-purple mx-auto mt-6 shadow-[0_0_15px_#A020F0]' })
+        // Album Art
+        React.createElement('div', { className: 'flex-1 flex flex-col items-center justify-center px-10 py-4 z-10' },
+            React.createElement('div', { className: `polaroid-frame w-full max-w-xs ${playing ? 'playing' : ''}` },
+                React.createElement('div', { className: 'inner-rule' },
+                    React.createElement('img', { src: current?.thumbnail, className: 'w-full aspect-square object-cover' })
+                )
+            ),
+            
+            // Text Info
+            React.createElement('div', { className: 'w-full text-center mt-12' },
+                React.createElement('h2', { className: 'font-serif text-4xl font-black text-espresso mb-2' }, current?.title),
+                React.createElement('p', { className: 'text-sage text-lg font-condensed tracking-widest uppercase mb-4' }, current?.artist),
+                React.createElement('p', { className: 'text-brass italic text-sm' }, 'The Linen Sessions • 2026'),
+                React.createElement('div', { className: 'double-rule max-w-[200px] mx-auto' })
             ),
 
-            // Lyrics teaser
-            React.createElement('div', { className: 'space-y-4 py-8' },
-                React.createElement('p', { className: 'lyric-line dim' }, "Deep in the electric void"),
-                React.createElement('p', { className: 'lyric-line active' }, "We find the resonance"),
-                React.createElement('p', { className: 'lyric-line dim' }, "Where pure black meets the light")
+            // Visualizer
+            React.createElement(Visualizer, { active: playing }),
+
+            // Progress
+            React.createElement('div', { className: 'w-full space-y-6 mt-8' },
+                React.createElement('div', { className: 'flex justify-between font-mono text-[10px] text-brass' },
+                    React.createElement('span', null, fmtTime(progress)),
+                    React.createElement('span', null, fmtTime(duration))
+                ),
+                React.createElement('div', {
+                    className: 'tailor-ruler',
+                    onClick: (e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const p = (e.clientX - rect.left) / rect.width;
+                        if (playerRef.current) playerRef.current.seekTo(p * duration);
+                    }
+                },
+                    React.createElement('div', { className: 'tailor-ruler-fill', style: { width: `${(progress / duration) * 100}%` } }),
+                    React.createElement('div', { className: 'tailor-ruler-thumb', style: { left: `${(progress / duration) * 100}%` } })
+                )
             ),
 
             // Controls
-            React.createElement('div', { className: 'space-y-10' },
-                // Progress
-                React.createElement('div', { className: 'space-y-3' },
-                    React.createElement('div', {
-                        className: 'progress-container h-[4px]',
-                        onClick: (e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const p = (e.clientX - rect.left) / rect.width;
-                            if (playerRef.current) playerRef.current.seekTo(p * duration);
-                        }
-                    },
-                        React.createElement('div', { className: 'progress-fill h-full', style: { width: `${(progress / duration) * 100}%` } },
-                            React.createElement('div', { className: 'progress-thumb w-3 h-3 opacity-100' })
+            React.createElement('div', { className: 'w-full flex items-center justify-between mt-12 mb-8' },
+                React.createElement('button', { className: 'text-brass text-2xl' }, '⥮'),
+                React.createElement('div', { className: 'flex items-center gap-10' },
+                    React.createElement('button', { onClick: () => playSong(queue, (qIdx - 1 + queue.length) % queue.length), className: 'text-brass text-4xl' }, '⇠'),
+                    React.createElement('button', {
+                        onClick: () => {
+                            if (!playerRef.current || !isReady) return;
+                            playing ? playerRef.current.pauseVideo() : playerRef.current.playVideo();
+                        },
+                        className: 'leather-medallion'
+                    }, 
+                        React.createElement('div', { className: 'leather-medallion-inner' },
+                            React.createElement('span', { className: 'text-white text-3xl' }, playing ? '⏸' : '▶')
                         )
                     ),
-                    React.createElement('div', { className: 'flex justify-between mono text-[10px] text-dim font-bold' },
-                        React.createElement('span', null, fmtTime(progress)),
-                        React.createElement('span', null, fmtTime(duration))
-                    )
+                    React.createElement('button', { onClick: () => playSong(queue, (qIdx + 1) % queue.length), className: 'text-brass text-4xl' }, '⇢')
                 ),
+                React.createElement('button', { className: 'text-brass text-2xl' }, '↺')
+            ),
 
-                // Buttons
-                React.createElement('div', { className: 'flex items-center justify-around' },
-                    React.createElement('button', { className: 'dim-icon text-2xl' }, '⇄'),
-                    React.createElement('button', { onClick: () => playSong(queue, (qIdx - 1 + queue.length) % queue.length), className: 'control-icon text-3xl' }, '⏮'),
-                    React.createElement('button', {
-                        onClick: () => playing ? playerRef.current.pauseVideo() : playerRef.current.playVideo(),
-                        className: 'play-btn scale-110'
-                    }, React.createElement('span', { className: 'text-3xl ml-1' }, playing ? '⏸' : '▶')),
-                    React.createElement('button', { onClick: () => playSong(queue, (qIdx + 1) % queue.length), className: 'control-icon text-3xl' }, '⏭'),
-                    React.createElement('button', { className: 'dim-icon text-2xl' }, '↺')
+            // Volume
+            React.createElement('div', { className: 'w-full flex items-center gap-6 mt-4' },
+                React.createElement('span', { className: 'text-brass' }, '🔈'),
+                React.createElement('div', { className: 'flex-1 volume-fader-track' },
+                    React.createElement('div', { className: 'volume-fader-rail', style: { left: '0' } }),
+                    React.createElement('div', { className: 'volume-fader-rail', style: { left: '20%' } }),
+                    React.createElement('div', { className: 'volume-fader-rail', style: { left: '40%' } }),
+                    React.createElement('div', { className: 'volume-fader-rail', style: { left: '60%' } }),
+                    React.createElement('div', { className: 'volume-fader-rail', style: { left: '80%' } }),
+                    React.createElement('div', { className: 'volume-fader-rail', style: { left: '100%' } }),
+                    React.createElement('div', { 
+                        className: 'volume-fader-knob', 
+                        style: { left: `${volume}%` },
+                        onMouseDown: (e) => {
+                             // Simple volume drag logic could go here
+                        }
+                    })
                 )
             )
-        ),
-        React.createElement(Visualizer, { active: playing })
-    );
-
-    const renderSettings = () => React.createElement('div', { className: 'p-6 space-y-10 pb-40' },
-        React.createElement('h2', { className: 'text-3xl' }, 'INTERFACE'),
-        React.createElement('section', { className: 'space-y-6' },
-            React.createElement('h3', { className: 'text-dim mono text-[10px] font-bold' }, 'EQUALIZER_SPECTRUM'),
-            React.createElement('div', { className: 'flex justify-between items-end h-32' },
-                [80, 60, 90, 40, 70, 50, 85].map((h, i) => React.createElement('div', { key: i, className: 'eq-bar-container h-full w-8' },
-                    React.createElement('div', { className: 'eq-bar', style: { height: `${h}%` } },
-                        React.createElement('div', { className: 'eq-handle' })
-                    )
-                ))
-            )
-        ),
-        React.createElement('section', { className: 'space-y-4' },
-            React.createElement('h3', { className: 'text-dim mono text-[10px] font-bold' }, 'SYSTEM_ENGINE'),
-            React.createElement('div', { className: 'flex justify-between items-center amoled-card border border-transparent active:border-cyan/30 transition-colors' },
-                React.createElement('span', { className: 'text-sm font-bold' }, 'BASS_BOOST'),
-                React.createElement('button', { className: 'text-cyan mono text-xs font-bold' }, 'ON')
-            ),
-            React.createElement('div', { className: 'flex justify-between items-center amoled-card border border-transparent active:border-purple/30 transition-colors' },
-                React.createElement('span', { className: 'text-sm font-bold' }, 'AMOLED_INFINITE'),
-                React.createElement('button', { className: 'text-purple mono text-xs font-bold' }, 'TRUE')
-            ),
-            React.createElement('div', { className: 'flex justify-between items-center amoled-card' },
-                React.createElement('span', { className: 'text-sm font-bold' }, 'GLOW_INTENSITY'),
-                React.createElement('input', { type: 'range', className: 'accent-purple w-24' })
-            ),
-            React.createElement('button', {
-                onClick: onLogout,
-                className: 'w-full py-4 text-pink font-bold border border-pink/30 rounded-2xl mt-8 active:bg-pink/10 transition-colors'
-            }, 'TERMINATE_SESSION')
         )
     );
 
-    return React.createElement('div', {
-        className: 'h-screen flex flex-col bg-oled overflow-hidden relative',
-        onClick: addRipple
-    },
-        ripples.map(r => React.createElement(RippleEffect, { key: r.id, x: r.x, y: r.y, onEnd: () => removeRipple(r.id) })),
-
+    return React.createElement('div', { className: 'h-screen flex flex-col bg-linen relative overflow-hidden' },
         React.createElement('main', { className: 'flex-1 overflow-y-auto no-scrollbar' },
             view === 'home' && renderHome(),
-            view === 'search' && renderSearch(),
-            view === 'library' && renderLibrary(),
-            view === 'player' && renderPlayer(),
-            view === 'settings' && renderSettings()
+            view === 'search' && renderTrackList(results, 'Discovered'),
+            view === 'library' && renderTrackList(liked, 'Journal'),
+            view === 'player' && renderPlayer()
         ),
 
         // Mini Player
         current && view !== 'player' && React.createElement('div', {
             onClick: () => setView('player'),
-            className: 'fixed bottom-[80px] left-4 right-4 amoled-card flex items-center gap-4 py-3 border border-purple/10 z-40 animate-slide-up active:scale-[0.98] transition-transform'
+            className: 'fixed bottom-24 left-6 right-6 bg-ecru border border-brass/30 p-3 shadow-xl z-40 flex items-center gap-4 cursor-pointer hover:bg-white/50 transition-colors'
         },
-            React.createElement('div', { className: 'relative' },
-                React.createElement('img', { src: current.thumbnail, className: `w-10 h-10 rounded-full object-cover ${playing ? 'animate-spin-slow' : ''}` }),
-                playing && React.createElement('div', { className: 'absolute inset-0 rounded-full border border-purple/50 animate-ping' })
-            ),
+            React.createElement('img', { src: current.thumbnail, className: 'w-12 h-12 border border-brass/20' }),
             React.createElement('div', { className: 'flex-1 min-w-0' },
-                React.createElement('p', { className: 'text-xs font-black truncate' }, current.title),
-                React.createElement('p', { className: 'artist-name text-[8px] text-dim font-bold' }, current.artist)
+                React.createElement('p', { className: 'font-serif text-espresso truncate' }, current.title),
+                React.createElement('p', { className: 'text-sage text-[10px] uppercase tracking-widest' }, current.artist)
             ),
             React.createElement('button', {
-                onClick: (e) => { e.stopPropagation(); playing ? playerRef.current.pauseVideo() : playerRef.current.playVideo() },
-                className: 'text-purple mr-2 text-xl'
+                onClick: (e) => { 
+                    e.stopPropagation(); 
+                    if (!playerRef.current || !isReady) return;
+                    playing ? playerRef.current.pauseVideo() : playerRef.current.playVideo();
+                },
+                className: 'text-terracotta text-2xl pr-2'
             }, playing ? '⏸' : '▶')
         ),
 
         // Nav Bar
-        React.createElement('nav', { className: 'nav-bar border-t border-charcoal' },
+        React.createElement('nav', { className: 'fixed bottom-0 left-0 right-0 h-20 bg-linen border-t border-brass/10 flex z-50' },
             React.createElement('button', { onClick: () => setView('home'), className: `nav-item ${view === 'home' ? 'active' : ''}` },
-                React.createElement('span', { className: 'text-2xl' }, '◈'),
-                React.createElement('span', { className: 'mono text-[9px] font-bold' }, 'CORE'),
-                view === 'home' && React.createElement('div', { className: 'nav-glow' })
+                React.createElement('span', { className: 'text-2xl' }, '☖'),
+                React.createElement('span', { className: 'font-condensed text-[10px] uppercase tracking-tighter' }, 'Studio'),
+                view === 'home' && React.createElement('div', { className: 'nav-stitch' })
             ),
             React.createElement('button', { onClick: () => setView('library'), className: `nav-item ${view === 'library' ? 'active' : ''}` },
-                React.createElement('span', { className: 'text-2xl' }, '☲'),
-                React.createElement('span', { className: 'mono text-[9px] font-bold' }, 'LOGS'),
-                view === 'library' && React.createElement('div', { className: 'nav-glow' })
+                React.createElement('span', { className: 'text-2xl' }, '☰'),
+                React.createElement('span', { className: 'font-condensed text-[10px] uppercase tracking-tighter' }, 'Journal'),
+                view === 'library' && React.createElement('div', { className: 'nav-stitch' })
             ),
-            React.createElement('button', { onClick: () => setView('settings'), className: `nav-item ${view === 'settings' ? 'active' : ''}` },
+            React.createElement('button', { onClick: () => onLogout(), className: 'nav-item' },
                 React.createElement('span', { className: 'text-2xl' }, '⌬'),
-                React.createElement('span', { className: 'mono text-[9px] font-bold' }, 'OPTS'),
-                view === 'settings' && React.createElement('div', { className: 'nav-glow' })
+                React.createElement('span', { className: 'font-condensed text-[10px] uppercase tracking-tighter' }, 'Exit')
             )
         ),
 
